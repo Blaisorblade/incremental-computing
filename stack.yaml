@@ -1,0 +1,5 @@
+resolver: lts-2.22
+packages:
+- .
+extra-deps:
+- order-maintenance-0.0.1.0
