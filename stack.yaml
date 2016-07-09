@@ -2,4 +2,4 @@ resolver: lts-2.22
 packages:
 - .
 extra-deps:
-- order-maintenance-0.1.0.0
+- order-maintenance-0.1.1.0
