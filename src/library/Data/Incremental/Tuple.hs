@@ -33,7 +33,7 @@ import qualified Prelude
 
 import           Data.Monoid (Monoid (mempty, mappend))
 import qualified Data.Tuple as Tuple
-import           Data.MultiChange (MultiChange)
+import           Data.MultiChange
 import qualified Data.MultiChange as MultiChange
 import           Data.Incremental
 
@@ -86,7 +86,7 @@ snd = MultiChange.composeMap $ simpleTrans Prelude.snd prop where
     prop (Second change) = change
 
 swap :: (Changeable a, Changeable b) => (a, b) ->> (b, a)
-swap = MultiChange.map $ simpleTrans Tuple.swap prop where
+swap = mapMultiChange $ simpleTrans Tuple.swap prop where
 
     prop (First change)  = Second change
     prop (Second change) = First change

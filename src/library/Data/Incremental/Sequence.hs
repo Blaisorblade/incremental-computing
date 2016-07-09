@@ -75,7 +75,7 @@ import qualified Data.Sequence as Seq
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.STRef.Lazy
-import           Data.MultiChange (MultiChange)
+import           Data.MultiChange hiding (singleton)
 import qualified Data.MultiChange as MultiChange
 import           Data.Incremental
 import qualified Data.Incremental.Tuple as Tuple
@@ -220,7 +220,7 @@ singleton = simpleTrans Seq.singleton (changeAt 0)
 -- ** Two-element sequence construction
 
 fromPair :: Changeable a => (a, a) ->> Seq a
-fromPair = MultiChange.map $ simpleTrans fun prop where
+fromPair = mapMultiChange $ simpleTrans fun prop where
 
     fun ~(val1, val2) = Seq.fromList [val1, val2]
 
@@ -253,7 +253,7 @@ length = MultiChange.composeMap $ stateTrans init prop where
 -- ** Mapping
 
 map :: (Changeable a, Changeable b) => (a ->> b) -> Seq a ->> Seq b
-map trans = MultiChange.map $ stTrans (\ seq -> do
+map trans = mapMultiChange $ stTrans (\ seq -> do
     let elemProc = toSTProc trans
     let seqInit seq = do
             procOutputs <- traverse elemProc seq
@@ -283,7 +283,7 @@ map trans = MultiChange.map $ stTrans (\ seq -> do
 map' :: (Changeable a, DefaultChange a ~ PrimitiveChange a,
         Changeable b, DefaultChange b ~ PrimitiveChange b) =>
        (a -> b) -> Seq a ->> Seq b
-map' fun = MultiChange.map $ simpleTrans (fmap fun) prop where
+map' fun = mapMultiChange $ simpleTrans (fmap fun) prop where
 
     prop (Insert ix seq)      = Insert ix (fmap fun seq)
     prop (Delete ix len)      = Delete ix len
@@ -323,7 +323,7 @@ seqToConcatState = FingerTree.fromList .
                    fmap (ConcatStateElement . Seq.length)
 
 concat :: Changeable a => Seq (Seq a) ->> Seq a
-concat = MultiChange.bind $ stateTrans init prop where
+concat = bindMultiChange $ stateTrans init prop where
 
     init seq = (seqConcat seq, seqToConcatState seq)
 
@@ -484,7 +484,7 @@ filter' = concatMap . gate'
 -- ** Reversal
 
 reverse :: Changeable a => Seq a ->> Seq a
-reverse = MultiChange.map $ stateTrans init prop where
+reverse = mapMultiChange $ stateTrans init prop where
 
     init seq = (Seq.reverse seq, Seq.length seq)
 
@@ -511,7 +511,7 @@ reverse = MultiChange.map $ stateTrans init prop where
 -- ** Sorting
 
 sort :: (Ord a, Changeable a) => Seq a ->> Seq a
-sort = MultiChange.bind $ orderSTTrans (\ seq -> do
+sort = bindMultiChange $ orderSTTrans (\ seq -> do
     let seq' = Seq.sort seq
     initTaggedSeq <- traverse (\ elem -> fmap ((,) elem) newMaximum) seq
     let initTaggedSet = Set.fromList (toList initTaggedSeq)

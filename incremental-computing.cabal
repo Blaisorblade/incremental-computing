@@ -1,5 +1,5 @@
 Name:          incremental-computing
-Version:       0.0.0.1
+Version:       0.1.0.0
 Cabal-Version: >= 1.16
 Build-Type:    Simple
 License:       BSD3

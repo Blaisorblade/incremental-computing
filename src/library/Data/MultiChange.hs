@@ -11,10 +11,10 @@ module Data.MultiChange (
 
     -- * Monad structure
 
-    map,
-    return,
-    join,
-    bind,
+    mapMultiChange,
+    returnMultiChange,
+    joinMultiChange,
+    bindMultiChange,
 
     -- * Multi composition
 
@@ -25,12 +25,8 @@ module Data.MultiChange (
 
 -- Prelude
 
-import           Prelude hiding (id, (.), map, return)
+import           Prelude hiding (id, (.))
 import qualified Prelude
-{-FIXME:
-    After establishment of the Applicative–Monad proposal, we have to optionally
-    hide join.
--}
 
 -- Control
 
@@ -89,24 +85,24 @@ singleton = MultiChange . Dual . DList.singleton
 fromList :: [p] -> MultiChange p
 fromList = MultiChange . Dual . DList.fromList
 
--- * Monad structure
+-- * Monad structure. We use the Trans category rather than Hask.
 
-map :: Trans p q -> Trans (MultiChange p) (MultiChange q)
-map trans = stTrans (\ val -> do
+mapMultiChange :: Trans p q -> Trans (MultiChange p) (MultiChange q)
+mapMultiChange trans = stTrans (\ val -> do
     ~(val', prop) <- toSTProc trans val
     let multiProp change = do
             atomics' <- mapM prop (toList change)
             Prelude.return (fromList atomics')
     Prelude.return (val', multiProp))
 
-return :: Trans p (MultiChange p)
-return = simpleTrans id singleton
+returnMultiChange :: Trans p (MultiChange p)
+returnMultiChange = simpleTrans id singleton
 
-join :: Trans (MultiChange (MultiChange p)) (MultiChange p)
-join = compose
+joinMultiChange :: Trans (MultiChange (MultiChange p)) (MultiChange p)
+joinMultiChange = compose
 
-bind :: Trans p (MultiChange q) -> Trans (MultiChange p) (MultiChange q)
-bind = composeMap
+bindMultiChange :: Trans p (MultiChange q) -> Trans (MultiChange p) (MultiChange q)
+bindMultiChange = composeMap
 
 -- * Multi composition
 
@@ -119,4 +115,4 @@ compose = simpleTrans id (mconcat . reverse . toList)
 -}
 
 composeMap :: Monoid q => Trans p q -> Trans (MultiChange p) q
-composeMap trans = compose . map trans
+composeMap trans = compose . mapMultiChange trans
