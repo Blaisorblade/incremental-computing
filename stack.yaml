@@ -1,5 +1,7 @@
-resolver: lts-2.22
+resolver: nightly-2016-07-07
 packages:
 - .
 extra-deps:
 - order-maintenance-0.1.1.0
+# To use a newer transformers than `order-maintenance` allows.
+allow-newer: true

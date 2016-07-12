@@ -67,11 +67,12 @@ instance Foldable MultiChange where
 
     foldr next init (MultiChange (Dual dList)) = Foldable.foldr next init dList
 
+newtype Id a = Id {unId :: a}
 instance Change p => Change (MultiChange p) where
 
-    type Value (MultiChange p) = Value p
+    type Value (MultiChange p) = Id (Value p)
 
-    change $$ val = List.foldl' (flip ($$)) val (toList change)
+    change $$ (Id val) = Id $ List.foldl' (flip ($$)) val (toList change)
 
 -- * Construction
 
@@ -89,14 +90,14 @@ fromList = MultiChange . Dual . DList.fromList
 
 mapMultiChange :: Trans p q -> Trans (MultiChange p) (MultiChange q)
 mapMultiChange trans = stTrans (\ val -> do
-    ~(val', prop) <- toSTProc trans val
+    ~(val', prop) <- toSTProc trans (unId val)
     let multiProp change = do
             atomics' <- mapM prop (toList change)
             Prelude.return (fromList atomics')
-    Prelude.return (val', multiProp))
+    Prelude.return (Id val', multiProp))
 
 returnMultiChange :: Trans p (MultiChange p)
-returnMultiChange = simpleTrans id singleton
+returnMultiChange = simpleTrans Id singleton
 
 joinMultiChange :: Trans (MultiChange (MultiChange p)) (MultiChange p)
 joinMultiChange = compose
@@ -107,7 +108,7 @@ bindMultiChange = composeMap
 -- * Multi composition
 
 compose :: Monoid p => Trans (MultiChange p) p
-compose = simpleTrans id (mconcat . reverse . toList)
+compose = simpleTrans unId (mconcat . reverse . toList)
 {-FIXME:
     Check whether the use of mconcat . reverse is questionable regarding space
     usage or strictness. If it is, consider using foldr (flip mappend) mempty

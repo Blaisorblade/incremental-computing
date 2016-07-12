@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilyDependencies #-}
 module Data.Incremental (
 
     -- * Changes
@@ -75,7 +76,7 @@ infixr 0 ->>
 
 class Change p where
 
-    type Value p :: *
+    type Value p = (r :: *) | r -> p
 
     -- NOTE: Operator $$ is at least not used in the base library.
     ($$) :: p -> Value p -> Value p
@@ -96,10 +97,10 @@ instance Monoid (PrimitiveChange a) where
 
 instance Change (PrimitiveChange a) where
 
-    type Value (PrimitiveChange a) = a
+    type Value (PrimitiveChange a) = Identity a
 
     Keep          $$ val = val
-    ReplaceBy val $$ _   = val
+    ReplaceBy val $$ _   = Identity val
 
 -- * Transformations
 
@@ -258,12 +259,12 @@ const :: Monoid q => Value q -> Trans p q
 const val = simpleTrans (Prelude.const val) (Prelude.const mempty)
 
 fromFunction :: (a -> b) -> Trans (PrimitiveChange a) (PrimitiveChange b)
-fromFunction fun = simpleTrans fun (fmap fun)
+fromFunction fun = simpleTrans (Identity . fun . runIdentity) (fmap fun)
 
 sanitize :: Eq a => Trans (PrimitiveChange a) (PrimitiveChange a)
 sanitize = stateTrans init prop where
 
-    init val = (val, val)
+    init (Identity val) = (Identity val, val)
 
     prop Keep            state = (Keep, state)
     prop (ReplaceBy val) state = if val == state
@@ -274,7 +275,7 @@ sanitize = stateTrans init prop where
 
 class (Monoid (DefaultChange a),
        Change (DefaultChange a),
-       Value (DefaultChange a) ~ a) =>
+       Value (DefaultChange a) ~ Identity a) =>
       Changeable a where
 
     type DefaultChange a :: *
